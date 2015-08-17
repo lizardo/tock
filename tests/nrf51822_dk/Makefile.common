@@ -1,0 +1,70 @@
+CC = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+NRF51_SDK = /opt/nrf51-sdk
+JLINKEXE = JLinkExe
+
+NRF51_SDK_PATHS = $(NRF51_SDK)/nrf51822/Source/templates \
+		  $(NRF51_SDK)/nrf51822/Source/nrf_delay \
+		  $(NRF51_SDK)/nrf51822/Source/templates/gcc \
+		  $(NRF51_SDK)/nrf51422/Source/app_common
+NRF51_SDK_INCLUDES = -I$(NRF51_SDK)/nrf51822/Include \
+		     -I$(NRF51_SDK)/nrf51822/Include/gcc \
+		     -I$(NRF51_SDK)/nrf51422/Include/app_common \
+		     -I$(NRF51_SDK)/nrf51822/Include/ble/softdevice
+
+BLESSED_SRC ?= $(HOME)/trees/blessed.git
+BLESSED_PATHS = $(BLESSED_SRC)/stack $(BLESSED_SRC)/platform/nrf51822
+BLESSED_INCLUDES = -I$(BLESSED_SRC)/include -I$(BLESSED_SRC)/stack
+
+RUSTC_FLAGS = -L .. --target thumbv6m-none-eabi -C target-cpu=cortex-m0 -C relocation-model=static \
+	      -C opt-level=1 -g -Z no-landing-pads -A dead_code -A unused_variables
+
+vpath %.c $(NRF51_SDK_PATHS) $(BLESSED_SRC)/stack $(BLESSED_SRC)/platform/nrf51822
+vpath %.s $(NRF51_SDK_PATHS)
+
+.SUFFIXES: .o .rs .c .elf .bin
+
+.c.o .s.o:
+	$(CC) -Werror -Wall -std=gnu99 -mcpu=cortex-m0 -mthumb -DBOARD_PCA10001 -DNRF51 \
+	       $(NRF51_SDK_INCLUDES) $(BLESSED_INCLUDES) -c $<
+
+.o.elf:
+	$(CC) -Werror -Wall -mcpu=cortex-m0 -mthumb -mabi=aapcs \
+		-Xlinker -Map=main.map \
+		-L$(NRF51_SDK)/nrf51822/Source/templates/gcc \
+		-T$(NRF51_SDK)/nrf51822/Source/templates/gcc/gcc_nrf51_blank_xxaa.ld $^ -o $@
+
+.rs.o:
+	rustc $(RUSTC_FLAGS) --emit obj -o $@ $<
+
+all: main.bin
+
+main.o: ../libcore.rlib
+
+../libcore.rlib:
+	make -C ../../.. extern/rustc/src/libcore/lib.rs
+	rustc $(RUSTC_FLAGS) -o $@ ../../../extern/rustc/src/libcore/lib.rs
+
+main.bin: main.elf
+	$(OBJCOPY) -O binary $< $@
+
+flash: main.bin
+	echo \
+	device nrf51822\\n\
+	speed 1000\\n\
+	w4 4001e504 1\\n\
+	loadbin $< 0\\n\
+	r\\n\
+	g\\n\
+	exit | $(JLINKEXE)
+
+erase:
+	echo \
+	w4 4001e504 2\\n\
+	w4 4001e50c 1\\n\
+	w4 4001e514 1\\n\
+	r\\n\
+	exit | $(JLINKEXE)
+
+clean:
+	rm -f *.o *.elf *.map *.bin *.log

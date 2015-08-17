@@ -5,6 +5,7 @@ build/*
 *.bin
 *.elf
 *.o
+*.map
 *.ll
 .gdbinit
 
