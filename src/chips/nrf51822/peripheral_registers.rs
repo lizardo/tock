@@ -14,3 +14,30 @@ pub struct GPIO {
     _pad1: [u8; 480],
     pub pin_cnf: [VolatileCell<u32>; 32],
 }
+
+pub const TIMER0_BASE: usize = 0x40008000;
+pub struct TIMER0 {
+    pub tasks_start: VolatileCell<u32>,
+    pub tasks_stop: VolatileCell<u32>,
+    pub tasks_count: VolatileCell<u32>,
+    pub tasks_clear: VolatileCell<u32>,
+    pub tasks_shutdown: VolatileCell<u32>,
+    _pad0: [u8; 44],
+    pub tasks_capture: [VolatileCell<u32>; 4],
+    _pad1: [u8; 252],
+    pub events_compare: [VolatileCell<u32>; 4],
+    _pad2: [u8; 188],
+    pub shorts: VolatileCell<u32>,
+    _pad3: [u8; 256],
+    pub intenset: VolatileCell<u32>,
+    pub intenclr: VolatileCell<u32>,
+    _pad4: [u8; 504],
+    pub mode: VolatileCell<u32>,
+    pub bitmode: VolatileCell<u32>,
+    _pad5: [u8; 4],
+    pub prescaler: VolatileCell<u32>,
+    _pad6: [u8; 44],
+    pub cc: [VolatileCell<u32>; 4],
+    _pad7: [u8; 2744],
+    pub power: VolatileCell<u32>,
+}

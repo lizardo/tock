@@ -95,6 +95,7 @@ def dump_registers(peripherals, outfile):
             if rname in RUST_KEYWORDS:
                 rname += "_"
             if offset != cur_ofs:
+                assert offset > cur_ofs
                 print("    _pad%d: [u8; %d]," % (pad_id, offset - cur_ofs), file=outfile)
                 pad_id += 1
             if array_size:
@@ -110,7 +111,7 @@ def main():
     interrupts = get_peripheral_interrupts(parser)
     dump_macros(interrupts,
             open("src/chips/nrf51822/peripheral_interrupts.h", "w"))
-    peripherals = get_peripheral_registers(parser, ["GPIO"])
+    peripherals = get_peripheral_registers(parser, ["GPIO", "TIMER0"])
     dump_registers(peripherals,
             open("src/chips/nrf51822/peripheral_registers.rs", "w"))
 
